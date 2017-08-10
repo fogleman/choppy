@@ -25,13 +25,14 @@ func BindInteractor(window *glfw.Window, interactor Interactor) {
 // AppInteractor
 
 type AppInteractor struct {
-	MeshInteractor  Interactor
-	PlaneInteractor Interactor
+	MeshInteractor  *Arcball
+	PlaneInteractor *Arcball
 	Modifiers       glfw.ModifierKey
+	Callback        func(*AppInteractor)
 }
 
-func NewAppInteractor(meshInteractor, planeInteractor Interactor) *AppInteractor {
-	return &AppInteractor{meshInteractor, planeInteractor, 0}
+func NewAppInteractor(callback func(*AppInteractor)) *AppInteractor {
+	return &AppInteractor{NewArcball(), NewArcball(), 0, callback}
 }
 
 func (a *AppInteractor) ForMesh(mods glfw.ModifierKey) bool {
@@ -65,6 +66,10 @@ func (a *AppInteractor) MouseButtonCallback(window *glfw.Window, button glfw.Mou
 }
 
 func (a *AppInteractor) KeyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if action == glfw.Press && key == glfw.KeySpace {
+		a.Chop()
+		return
+	}
 	a.Modifiers = mods
 	if a.ForMesh(a.Modifiers) {
 		a.MeshInteractor.KeyCallback(window, key, scancode, action, mods)
@@ -77,6 +82,10 @@ func (a *AppInteractor) KeyCallback(window *glfw.Window, key glfw.Key, scancode 
 func (a *AppInteractor) ScrollCallback(window *glfw.Window, dx, dy float64) {
 	a.MeshInteractor.ScrollCallback(window, dx, dy)
 	a.PlaneInteractor.ScrollCallback(window, dx, dy)
+}
+
+func (a *AppInteractor) Chop() {
+	a.Callback(a)
 }
 
 // Arcball
@@ -93,7 +102,7 @@ type Arcball struct {
 	Panning                bool
 }
 
-func NewArcball() Interactor {
+func NewArcball() *Arcball {
 	a := Arcball{}
 	a.RotationSensitivity = 20
 	a.TranslationSensitivity = 1.5
@@ -169,9 +178,7 @@ func (a *Arcball) ScrollCallback(window *glfw.Window, dx, dy float64) {
 	a.Scroll += dy
 }
 
-func (a *Arcball) Matrix(window *glfw.Window) fauxgl.Matrix {
-	w, h := window.GetFramebufferSize()
-	aspect := float64(w) / float64(h)
+func (a *Arcball) matrix() fauxgl.Matrix {
 	s := math.Pow(0.98, a.Scroll)
 	r := a.Rotation
 	if a.Rotating {
@@ -184,6 +191,14 @@ func (a *Arcball) Matrix(window *glfw.Window) fauxgl.Matrix {
 	m := fauxgl.Identity()
 	m = m.Translate(t)
 	m = r.Mul(m)
+	return m
+}
+
+func (a *Arcball) Matrix(window *glfw.Window) fauxgl.Matrix {
+	s := math.Pow(0.98, a.Scroll)
+	w, h := window.GetFramebufferSize()
+	aspect := float64(w) / float64(h)
+	m := a.matrix()
 	m = m.Scale(fauxgl.V(s, s, s))
 	m = m.LookAt(fauxgl.V(0, -3, 0), fauxgl.V(0, 0, 0), fauxgl.V(0, 0, 1))
 	m = m.Perspective(50, aspect, 0.1, 100)

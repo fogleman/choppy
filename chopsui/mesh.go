@@ -11,6 +11,7 @@ type MeshData struct {
 }
 
 type Mesh struct {
+	Data         *MeshData
 	Transform    fauxgl.Matrix
 	VertexBuffer uint32
 	VertexCount  int32
@@ -33,7 +34,7 @@ func NewMesh(data *MeshData) *Mesh {
 	// compute number of vertices
 	count := int32(len(data.Buffer) / 3)
 
-	return &Mesh{transform, vbo, count}
+	return &Mesh{data, transform, vbo, count}
 }
 
 func NewPlaneMesh() *Mesh {
@@ -63,4 +64,20 @@ func (mesh *Mesh) Draw(positionAttrib uint32) {
 
 func (mesh *Mesh) Destroy() {
 	gl.DeleteBuffers(1, &mesh.VertexBuffer)
+}
+
+func (mesh *Mesh) ToFauxgl() *fauxgl.Mesh {
+	b := mesh.Data.Buffer
+	nv := len(b) / 3
+	nt := nv / 3
+	triangles := make([]*fauxgl.Triangle, nt)
+	for i := 0; i < nt; i++ {
+		j := i * 9
+		p1 := fauxgl.Vector{float64(b[j+0]), float64(b[j+1]), float64(b[j+2])}
+		p2 := fauxgl.Vector{float64(b[j+3]), float64(b[j+4]), float64(b[j+5])}
+		p3 := fauxgl.Vector{float64(b[j+6]), float64(b[j+7]), float64(b[j+8])}
+		t := fauxgl.NewTriangleForPoints(p1, p2, p3)
+		triangles[i] = t
+	}
+	return fauxgl.NewTriangleMesh(triangles)
 }

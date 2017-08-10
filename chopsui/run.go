@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/fogleman/choppy"
 	"github.com/fogleman/fauxgl"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -137,10 +138,27 @@ func Run(path string) {
 	var mesh *Mesh
 	planeMesh := NewPlaneMesh()
 
+	// chop function
+	chop := func(a *AppInteractor) {
+		if mesh == nil {
+			return
+		}
+		fm := mesh.ToFauxgl()
+		m1 := a.MeshInteractor.matrix().Mul(mesh.Transform)
+		m2 := a.PlaneInteractor.matrix().Mul(planeMesh.Transform)
+		fm.Transform(m1)
+		point := m2.MulPosition(fauxgl.Vector{})
+		normal := m2.MulDirection(fauxgl.Vector{0, 0, 1})
+		fm1 := choppy.Chop(fm, point, normal)
+		fm2 := choppy.Chop(fm, point, normal.Negate())
+		fm1.Center()
+		fm2.Center()
+		fm1.SaveSTL("out1.stl")
+		fm2.SaveSTL("out2.stl")
+	}
+
 	// create interactor
-	meshInteractor := NewArcball()
-	planeInteractor := NewArcball()
-	interactor := NewAppInteractor(meshInteractor, planeInteractor)
+	interactor := NewAppInteractor(chop)
 	BindInteractor(window, interactor)
 
 	// render function
@@ -149,14 +167,14 @@ func Run(path string) {
 		if mesh != nil {
 			gl.UseProgram(program)
 			gl.Enable(gl.CULL_FACE)
-			matrix := getMatrix(window, meshInteractor, mesh)
+			matrix := getMatrix(window, interactor.MeshInteractor, mesh)
 			setMatrix(matrixUniform, matrix)
 			mesh.Draw(positionAttrib)
 		}
 		{
 			gl.UseProgram(planeProgram)
 			gl.Disable(gl.CULL_FACE)
-			matrix := getMatrix(window, planeInteractor, planeMesh)
+			matrix := getMatrix(window, interactor.PlaneInteractor, planeMesh)
 			setMatrix(planeMatrixUniform, matrix)
 			planeMesh.Draw(planePositionAttrib)
 		}
