@@ -2,7 +2,7 @@ package choppy
 
 import (
 	"github.com/fogleman/fauxgl"
-	"github.com/pradeep-pyro/triangle"
+	"github.com/fogleman/triangle"
 )
 
 type Path []fauxgl.Vector
