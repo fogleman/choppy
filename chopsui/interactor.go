@@ -35,11 +35,11 @@ func NewAppInteractor(meshInteractor, planeInteractor Interactor) *AppInteractor
 }
 
 func (a *AppInteractor) ForMesh(mods glfw.ModifierKey) bool {
-	return mods == 0 || mods&glfw.ModSuper != 0
+	return mods == 0 || mods&glfw.ModSuper != 0 || mods == glfw.ModShift
 }
 
 func (a *AppInteractor) ForPlane(mods glfw.ModifierKey) bool {
-	return mods == 0 || mods&glfw.ModAlt != 0
+	return mods == 0 || mods&glfw.ModAlt != 0 || mods == glfw.ModShift
 }
 
 func (a *AppInteractor) Matrix(window *glfw.Window) fauxgl.Matrix {
@@ -82,19 +82,21 @@ func (a *AppInteractor) ScrollCallback(window *glfw.Window, dx, dy float64) {
 // Arcball
 
 type Arcball struct {
-	Sensitivity float64
-	Start       fauxgl.Vector
-	Current     fauxgl.Vector
-	Rotation    fauxgl.Matrix
-	Translation fauxgl.Vector
-	Scroll      float64
-	Rotating    bool
-	Panning     bool
+	RotationSensitivity    float64
+	TranslationSensitivity float64
+	Start                  fauxgl.Vector
+	Current                fauxgl.Vector
+	Rotation               fauxgl.Matrix
+	Translation            fauxgl.Vector
+	Scroll                 float64
+	Rotating               bool
+	Panning                bool
 }
 
 func NewArcball() Interactor {
 	a := Arcball{}
-	a.Sensitivity = 20
+	a.RotationSensitivity = 20
+	a.TranslationSensitivity = 1.5
 	a.Rotation = fauxgl.Identity()
 	return &a
 }
@@ -104,7 +106,7 @@ func (a *Arcball) CursorPositionCallback(window *glfw.Window, x, y float64) {
 		a.Current = arcballVector(window)
 	}
 	if a.Panning {
-		a.Current = screenPosition(window)
+		a.Current = a.screenPosition(window)
 	}
 }
 
@@ -117,20 +119,21 @@ func (a *Arcball) MouseButtonCallback(window *glfw.Window, button glfw.MouseButt
 				a.Current = v
 				a.Rotating = true
 			} else {
-				v := screenPosition(window)
+				v := a.screenPosition(window)
 				a.Start = v
 				a.Current = v
 				a.Panning = true
 			}
 		} else if action == glfw.Release {
 			if a.Rotating {
-				m := arcballRotate(a.Start, a.Current, a.Sensitivity)
+				m := arcballRotate(a.Start, a.Current, a.RotationSensitivity)
 				a.Rotation = m.Mul(a.Rotation)
 				a.Rotating = false
 			}
 			if a.Panning {
+				s := math.Pow(0.98, a.Scroll)
 				d := a.Current.Sub(a.Start)
-				a.Translation = a.Translation.Add(d)
+				a.Translation = a.Translation.Add(d.MulScalar(a.TranslationSensitivity / s))
 				a.Panning = false
 			}
 		}
@@ -158,7 +161,6 @@ func (a *Arcball) KeyCallback(window *glfw.Window, key glfw.Key, scancode int, a
 			a.Rotation = fauxgl.Rotate(fauxgl.V(1, 0, 0), -math.Pi/2)
 		case 55:
 			a.Rotation = fauxgl.Rotate(fauxgl.V(1, 1, 0).Normalize(), -math.Pi/4).Rotate(fauxgl.V(0, 0, 1), math.Pi/4)
-		case 88: //X
 		}
 	}
 }
@@ -170,30 +172,35 @@ func (a *Arcball) ScrollCallback(window *glfw.Window, dx, dy float64) {
 func (a *Arcball) Matrix(window *glfw.Window) fauxgl.Matrix {
 	w, h := window.GetFramebufferSize()
 	aspect := float64(w) / float64(h)
+	s := math.Pow(0.98, a.Scroll)
 	r := a.Rotation
 	if a.Rotating {
-		r = arcballRotate(a.Start, a.Current, a.Sensitivity).Mul(r)
+		r = arcballRotate(a.Start, a.Current, a.RotationSensitivity).Mul(r)
 	}
 	t := a.Translation
 	if a.Panning {
-		t = t.Add(a.Current.Sub(a.Start))
+		t = t.Add(a.Current.Sub(a.Start).MulScalar(a.TranslationSensitivity / s))
 	}
-	s := math.Pow(0.98, a.Scroll)
 	m := fauxgl.Identity()
-	m = m.Scale(fauxgl.V(s, s, s))
-	m = r.Mul(m)
 	m = m.Translate(t)
+	m = r.Mul(m)
+	m = m.Scale(fauxgl.V(s, s, s))
 	m = m.LookAt(fauxgl.V(0, -3, 0), fauxgl.V(0, 0, 0), fauxgl.V(0, 0, 1))
 	m = m.Perspective(50, aspect, 0.1, 100)
 	return m
 }
 
-func screenPosition(window *glfw.Window) fauxgl.Vector {
+func (a *Arcball) screenPosition(window *glfw.Window) fauxgl.Vector {
+	r := a.Rotation
+	if a.Rotating {
+		r = arcballRotate(a.Start, a.Current, a.RotationSensitivity).Mul(r)
+	}
 	x, y := window.GetCursorPos()
 	w, h := window.GetSize()
 	x = (x/float64(w))*2 - 1
 	y = (y/float64(h))*2 - 1
-	return fauxgl.Vector{x, 0, -y}
+	v := fauxgl.Vector{x, 0, -y}
+	return r.Inverse().MulPosition(v)
 }
 
 func arcballVector(window *glfw.Window) fauxgl.Vector {

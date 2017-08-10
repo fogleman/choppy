@@ -141,7 +141,6 @@ func Run(path string) {
 	meshInteractor := NewArcball()
 	planeInteractor := NewArcball()
 	interactor := NewAppInteractor(meshInteractor, planeInteractor)
-	// interactor
 	BindInteractor(window, interactor)
 
 	// render function
