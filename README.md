@@ -2,6 +2,8 @@
 
 Chop 3D models in half with a user-defined slice plane.
 
+![Screenshot](http://i.imgur.com/DzixHKO.png)
+
 ### Prerequisites
 
 First, [install Go](https://golang.org/dl/), set your `GOPATH`, and make sure `$GOPATH/bin` is on your `PATH`.
@@ -36,3 +38,4 @@ choppy model.stl
 - Cmd + Shift + Mouse: Pan the model.
 - Alt + Shift + Mouse: Pan the plane.
 - Space: Chop! Writes two STL files to disk.
+
