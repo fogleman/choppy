@@ -14,11 +14,12 @@ type Polygon struct {
 }
 
 func renderPolygons(polygons []Polygon) image.Image {
-	dc := gg.NewContext(1024, 1024)
+	const S = 4096
+	dc := gg.NewContext(S, S)
 	dc.SetRGB(1, 1, 1)
 	dc.Clear()
-	dc.Translate(512, 512)
-	dc.Scale(384, 384)
+	dc.Translate(S/2, S/2)
+	dc.Scale(S*0.45, S*0.45)
 	for _, polygon := range polygons {
 		for _, p := range polygon.Exterior {
 			dc.LineTo(p.X, p.Y)
@@ -28,16 +29,25 @@ func renderPolygons(polygons []Polygon) image.Image {
 		dc.SetLineWidth(3)
 		dc.Stroke()
 		for _, path := range polygon.Interiors {
-			h := path.HolePoint()
-			dc.DrawPoint(h.X, h.Y, 3)
 			dc.NewSubPath()
 			for _, p := range path {
 				dc.LineTo(p.X, p.Y)
 			}
 			dc.ClosePath()
 		}
-		dc.SetRGB(0.4, 0.4, 0.4)
+		dc.SetRGB(1, 0, 0)
 		dc.SetLineWidth(3)
+		dc.Stroke()
+		for _, path := range polygon.Interiors {
+			h, _ := path.HolePoint()
+			dc.DrawPoint(h.X, h.Y, 3)
+		}
+		dc.Fill()
+		for _, path := range polygon.Interiors {
+			h, _ := path.HolePoint()
+			dc.DrawLine(path[0].X, path[0].Y, h.X, h.Y)
+		}
+		dc.SetLineWidth(1)
 		dc.Stroke()
 	}
 	return dc.Image()
@@ -51,7 +61,7 @@ func (polygon Polygon) Triangulate(plane Plane) *fauxgl.Mesh {
 	var points [][2]float64
 	var segments [][2]int32
 	for _, path := range paths {
-		path = path[1:]
+		// path = path[1:]
 		start := len(points)
 		for i, p := range path {
 			points = append(points, [2]float64{p.X, p.Y})
@@ -66,7 +76,7 @@ func (polygon Polygon) Triangulate(plane Plane) *fauxgl.Mesh {
 
 	var holes [][2]float64
 	for _, hole := range polygon.Interiors {
-		p := hole.HolePoint()
+		p, _ := hole.HolePoint()
 		holes = append(holes, [2]float64{p.X, p.Y})
 	}
 
@@ -114,7 +124,7 @@ func pathsToPolygons(paths []Path) []Polygon {
 			// see if p is a top-level contour (no others contain it)
 			ok := true
 			for j, q := range paths {
-				if i != j && !seen[j] && q.Contains(p[0]) {
+				if i != j && !seen[j] && q.ContainsPath(p) {
 					ok = false
 					break
 				}
@@ -123,15 +133,15 @@ func pathsToPolygons(paths []Path) []Polygon {
 				continue
 			}
 			seen[i] = true
-			// see which contours q are only contained by p (not contained by any other r)
+			// see which holes q are only contained by p (not contained by any other r)
 			var holes []Path
 			for j, q := range paths {
-				if seen[j] || !p.Contains(q[0]) {
+				if seen[j] || !p.ContainsPath(q) || !q.IsHole() {
 					continue
 				}
 				ok := true
 				for k, r := range paths {
-					if i != k && j != k && !seen[k] && r.Contains(q[0]) {
+					if i != k && j != k && !seen[k] && r.ContainsPath(q) {
 						ok = false
 						break
 					}
