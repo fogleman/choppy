@@ -55,12 +55,12 @@ func (polygon Polygon) Triangulate(plane Plane) *fauxgl.Mesh {
 		start := len(points)
 		for i, p := range path {
 			points = append(points, [2]float64{p.X, p.Y})
+			i1 := len(points) - 1
+			i2 := i1 + 1
 			if i == len(path)-1 {
-				segments = append(segments, [2]int32{int32(len(points) - 1), int32(start)})
-			} else {
-				segments = append(segments, [2]int32{int32(len(points) - 1), int32(len(points))})
+				i2 = start
 			}
-
+			segments = append(segments, [2]int32{int32(i1), int32(i2)})
 		}
 	}
 
@@ -69,10 +69,6 @@ func (polygon Polygon) Triangulate(plane Plane) *fauxgl.Mesh {
 		p := hole.HolePoint()
 		holes = append(holes, [2]float64{p.X, p.Y})
 	}
-
-	// fmt.Println(points)
-	// fmt.Println(segments)
-	// fmt.Println(holes)
 
 	if len(segments) < 3 {
 		return fauxgl.NewEmptyMesh()
