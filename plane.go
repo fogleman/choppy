@@ -2,6 +2,7 @@ package choppy
 
 import (
 	"github.com/fogleman/fauxgl"
+	"github.com/fogleman/gg"
 )
 
 type Plane struct {
@@ -53,10 +54,15 @@ func (p Plane) SliceMesh(m *fauxgl.Mesh) *fauxgl.Mesh {
 		}
 	}
 	paths = joinPaths(paths)
+	paths = projectPaths(paths, p)
+	polygons := pathsToPolygons(paths)
+
+	im := renderPolygons(polygons)
+	gg.SavePNG("out.png", im)
+
 	mesh := fauxgl.NewEmptyMesh()
-	for _, path := range paths {
-		m := triangulatePolygon(path, nil, p)
-		mesh.Add(m)
+	for _, polygon := range polygons {
+		mesh.Add(polygon.Triangulate(p))
 	}
 	return mesh
 }
