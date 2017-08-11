@@ -143,6 +143,7 @@ func Run(path string) {
 		if mesh == nil {
 			return
 		}
+		start := time.Now()
 		fm := mesh.ToFauxgl()
 		m1 := a.MeshInteractor.matrix().Mul(mesh.Transform)
 		m2 := a.PlaneInteractor.matrix().Mul(planeMesh.Transform)
@@ -153,6 +154,8 @@ func Run(path string) {
 		fm2 := choppy.Chop(fm, point, normal.Negate())
 		fm1.Center()
 		fm2.Center()
+		fmt.Printf(
+			"chopped mesh in %.3f seconds\n", time.Since(start).Seconds())
 		fm1.SaveSTL("out1.stl")
 		fm2.SaveSTL("out2.stl")
 	}

@@ -3,31 +3,14 @@ package main
 import (
 	"os"
 
-	"github.com/fogleman/choppy"
-	"github.com/fogleman/fauxgl"
+	"github.com/fogleman/choppy/chopsui"
 )
 
 func main() {
-	mesh, err := fauxgl.LoadMesh(os.Args[1])
-	if err != nil {
-		panic(err)
+	args := os.Args[1:]
+	if len(args) > 0 {
+		chopsui.Run(args[0])
+	} else {
+		chopsui.Run("")
 	}
-
-	mesh.Center()
-
-	point := fauxgl.Vector{0, 0, 0}
-	normal := fauxgl.Vector{1, 1, 1}.Normalize()
-
-	m1 := choppy.Chop(mesh, point, normal)
-	m2 := choppy.Chop(mesh, point, normal.Negate())
-
-	m1.SaveSTL("out1.stl")
-	m2.SaveSTL("out2.stl")
-
-	m1.Transform(fauxgl.Translate(normal.MulScalar(30)))
-	m2.Transform(fauxgl.Translate(normal.MulScalar(-30)))
-	mesh = fauxgl.NewEmptyMesh()
-	mesh.Add(m1)
-	mesh.Add(m2)
-	mesh.SaveSTL("out.stl")
 }
