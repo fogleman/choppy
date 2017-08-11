@@ -1,7 +1,6 @@
 package choppy
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/fogleman/fauxgl"
@@ -136,7 +135,7 @@ func pathsToPolygons(paths []Path) []Polygon {
 				}
 				ok := true
 				for k, r := range paths {
-					if i != k && j != k && r.Contains(q[0]) {
+					if i != k && j != k && !seen[k] && r.Contains(q[0]) {
 						ok = false
 						break
 					}
@@ -152,6 +151,5 @@ func pathsToPolygons(paths []Path) []Polygon {
 			done = false
 		}
 	}
-	fmt.Println()
 	return result
 }

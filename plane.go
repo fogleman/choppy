@@ -47,6 +47,7 @@ func (p Plane) ClipMesh(m *fauxgl.Mesh) *fauxgl.Mesh {
 }
 
 func (p Plane) SliceMesh(m *fauxgl.Mesh) *fauxgl.Mesh {
+	p.Point = p.Point.RoundPlaces(9)
 	var paths []Path
 	for _, t := range m.Triangles {
 		if v1, v2, ok := p.intersectTriangle(t); ok {
@@ -91,6 +92,9 @@ func (p Plane) pointInFront(v fauxgl.Vector) bool {
 }
 
 func (p Plane) intersectSegment(v0, v1 fauxgl.Vector) (fauxgl.Vector, bool) {
+	// TODO: do slicing in Z, rotate mesh to plane
+	v0 = v0.RoundPlaces(9).Add(p.Normal.MulScalar(5e-10))
+	v1 = v1.RoundPlaces(9).Add(p.Normal.MulScalar(5e-10))
 	u := v1.Sub(v0)
 	w := v0.Sub(p.Point)
 	d := p.Normal.Dot(u)
