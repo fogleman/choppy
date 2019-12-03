@@ -152,8 +152,8 @@ func Run(path string) {
 		normal := m2.MulDirection(fauxgl.Vector{0, 0, 1})
 		fm1 := choppy.Chop(fm, point, normal)
 		fm2 := choppy.Chop(fm, point, normal.Negate())
-		fm1.Center()
-		fm2.Center()
+		fm1.Transform(m1.Inverse())
+		fm2.Transform(m1.Inverse())
 		fmt.Printf(
 			"chopped mesh in %.3f seconds\n", time.Since(start).Seconds())
 		fm1.SaveSTL("out1.stl")
