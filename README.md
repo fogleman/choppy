@@ -21,7 +21,7 @@ You may need to [install prerequisites](https://github.com/go-gl/glfw#installati
 ### Installation
 
 ```
-go get -u github.com/fogleman/choppy/cmd/choppy
+go install github.com/fogleman/choppy/cmd/choppy@latest
 ```
 
 ### Usage
